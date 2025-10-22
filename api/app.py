@@ -1,3 +1,4 @@
+# api/app.py
 
 """
 Options Pricing Engine REST API
@@ -11,26 +12,19 @@ Usage:
     Then visit: http://localhost:5000/docs
 """
 
-from flask import Flask, request, jsonify, send_from_directory
-from flask_swagger_ui import get_swaggerui_blueprint
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import sys
 import os
 
-# Add project root directory to Python path for imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+# Add parent directory to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-try:
-    from src.models.option import Option, OptionType
-    from src.models.black_scholes import BlackScholesEngine
-    from src.models.monte_carlo import MonteCarloEngine
-    from src.models.greeks import GreeksCalculator
-except ImportError as e:
-    print(f"Error importing required modules: {e}")
-    print("Make sure you're running the app from the project root directory")
+from models.option import Option, OptionType
+from models.black_scholes import BlackScholesEngine
+from models.monte_carlo import MonteCarloEngine
+from models.greeks import GreeksCalculator
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -38,29 +32,6 @@ CORS(app)  # Enable CORS for web clients
 
 # Configuration
 app.config['JSON_SORT_KEYS'] = False
-
-# Swagger UI configuration
-SWAGGER_URL = '/docs'  # URL for exposing Swagger UI
-API_URL = '/static/swagger.json'  # Our API url (can be a local file)
-
-# Call factory function to create our blueprint
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config={
-        'app_name': "Options Pricing Engine API",
-        'deepLinking': True,
-        'displayOperationId': True
-    }
-)
-
-# Register blueprint at URL
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
-
-# Route for serving swagger specification
-@app.route("/static/swagger.json")
-def serve_swagger_spec():
-    return send_from_directory(os.path.dirname(__file__), 'swagger.json')
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -159,7 +130,236 @@ def home():
         }
     })
 
+@app.route('/api/price/live', methods=['POST'])
+def price_with_live_data():
+    """
+    Price option using live market data.
+    Automatically fetches current stock price, volatility, and risk-free rate.
+    """
+    try:
+        from data.market_data import MarketDataFetcher
+        
+        data = request.get_json()
+        
+        symbol = data.get('symbol')
+        strike_price = float(data.get('strike_price'))
+        days_to_expiration = int(data.get('days_to_expiration'))
+        option_type = data.get('option_type', 'call')
+        use_implied_vol = data.get('use_implied_vol', True)
+        
+        # Fetch live market data
+        fetcher = MarketDataFetcher()
+        option_data = fetcher.create_option_from_market_data(
+            symbol=symbol,
+            strike_price=strike_price,
+            days_to_expiration=days_to_expiration,
+            option_type=option_type,
+            use_implied_vol=use_implied_vol
+        )
+        
+        if not option_data:
+            return jsonify({
+                'success': False,
+                'error': f'Could not fetch market data for {symbol}'
+            }), 400
+        
+        # Create option and price it
+        option, error = parse_option_from_request(option_data)
+        if error:
+            return jsonify({'error': error}), 400
+        
+        price = BlackScholesEngine.price_option(option)
+        greeks = GreeksCalculator.calculate_analytical_greeks(option)
+        
+        return jsonify({
+            'method': 'black_scholes_with_live_data',
+            'success': True,
+            'option': option_to_dict(option, price=price, greeks=greeks),
+            'market_data': {
+                'data_source': 'yahoo_finance',
+                'volatility_type': 'implied' if use_implied_vol else 'historical',
+                'timestamp': option_data['timestamp']
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
+@app.route('/api/market/compare', methods=['POST'])
+def compare_with_market():
+    """
+    Compare your model price against actual market prices.
+    Returns model price, market price, and the difference.
+    """
+    try:
+        from data.market_data import MarketDataFetcher
+        
+        data = request.get_json()
+        symbol = data.get('symbol')
+        
+        if not symbol:
+            return jsonify({'error': 'Symbol required'}), 400
+        
+        # Get market comparison
+        fetcher = MarketDataFetcher()
+        comparison = fetcher.compare_model_vs_market(symbol)
+        
+        if comparison is None or comparison.empty:
+            return jsonify({
+                'success': False,
+                'error': f'No options data available for {symbol}'
+            }), 404
+        
+        # Convert to JSON-friendly format
+        results = comparison.to_dict('records')
+        
+        # Calculate summary stats
+        summary = {
+            'symbol': symbol,
+            'options_analyzed': len(comparison),
+            'mean_absolute_error': float(comparison['Difference'].abs().mean()),
+            'mean_percent_error': float(comparison['Pct_Error'].abs().mean()),
+            'median_percent_error': float(comparison['Pct_Error'].abs().median()),
+            'validation': 'PASS' if comparison['Pct_Error'].abs().mean() < 10 else 'REVIEW'
+        }
+        
+        return jsonify({
+            'success': True,
+            'summary': summary,
+            'top_10_atm_options': results[:10],
+            'full_results_count': len(results)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Update the docs endpoint to include new endpoints
+@app.route('/docs')
+def docs():
+    """API documentation"""
+    return jsonify({
+        'title': 'Options Pricing Engine API Documentation',
+        'base_url': 'http://localhost:5000',
+        
+        'endpoints': [
+            {
+                'endpoint': 'POST /api/price/black-scholes',
+                'description': 'Price European option using Black-Scholes formula',
+                'request_body': {
+                    'symbol': 'string (optional, default: DEMO)',
+                    'option_type': 'string (call or put)',
+                    'strike_price': 'number',
+                    'stock_price': 'number',
+                    'days_to_expiration': 'integer',
+                    'risk_free_rate': 'number (optional, default: 0.05)',
+                    'volatility': 'number (e.g., 0.25 for 25%)'
+                },
+                'example': {
+                    'symbol': 'AAPL',
+                    'option_type': 'call',
+                    'strike_price': 150,
+                    'stock_price': 155,
+                    'days_to_expiration': 30,
+                    'volatility': 0.30
+                }
+            },
+            {
+                'endpoint': 'POST /api/price/live',
+                'description': 'Price option using LIVE market data from Yahoo Finance',
+                'request_body': {
+                    'symbol': 'string (required)',
+                    'strike_price': 'number',
+                    'days_to_expiration': 'integer',
+                    'option_type': 'string (call or put)',
+                    'use_implied_vol': 'boolean (optional, default: true)'
+                },
+                'example': {
+                    'symbol': 'AAPL',
+                    'strike_price': 150,
+                    'days_to_expiration': 30,
+                    'option_type': 'call',
+                    'use_implied_vol': True
+                },
+                'note': 'Automatically fetches stock price, volatility, and risk-free rate'
+            },
+            {
+                'endpoint': 'POST /api/market/compare',
+                'description': 'Compare model prices vs actual market prices',
+                'request_body': {
+                    'symbol': 'string (required)'
+                },
+                'example': {
+                    'symbol': 'SPY'
+                },
+                'returns': 'Comparison of model vs market for entire options chain'
+            },
+            {
+                'endpoint': 'POST /api/price/monte-carlo',
+                'description': 'Price option using Monte Carlo simulation',
+                'additional_params': {
+                    'num_simulations': 'integer (default: 10000)',
+                    'option_style': 'string (european, asian, barrier)'
+                }
+            },
+            {
+                'endpoint': 'POST /api/greeks',
+                'description': 'Calculate option Greeks (Delta, Gamma, Vega, Theta, Rho)',
+                'returns': 'Option price and all Greeks'
+            },
+            {
+                'endpoint': 'POST /api/portfolio/analyze',
+                'description': 'Analyze multi-leg options portfolio',
+                'request_body': {
+                    'positions': [
+                        {
+                            'quantity': 'number (positive for long, negative for short)',
+                            'option': 'option parameters as above'
+                        }
+                    ]
+                }
+            }
+        ]
+    })
+
+# Update home endpoint to include new features
+@app.route('/')
+def home():
+    """API home page with documentation"""
+    return jsonify({
+        'name': 'Options Pricing Engine API',
+        'version': '1.0.0',
+        'description': 'Production-grade options pricing and risk analytics with LIVE market data',
+        'documentation': '/docs',
+        'endpoints': {
+            'pricing': {
+                'black_scholes': 'POST /api/price/black-scholes',
+                'monte_carlo': 'POST /api/price/monte-carlo',
+                'live_market_data': 'POST /api/price/live',  # NEW
+                'exotic': 'POST /api/price/exotic'
+            },
+            'market_data': {
+                'compare_vs_market': 'POST /api/market/compare'  # NEW
+            },
+            'greeks': 'POST /api/greeks',
+            'portfolio': 'POST /api/portfolio/analyze',
+            'health': 'GET /api/health'
+        },
+        'features': [
+            'Real-time market data from Yahoo Finance',
+            'Black-Scholes analytical pricing',
+            'Monte Carlo simulation',
+            'Exotic options (Asian, Barrier)',
+            'Greeks calculation',
+            'Portfolio risk management',
+            'Model vs market validation'
+        ]
+    })
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -454,19 +654,6 @@ def not_found(error):
         'documentation': '/docs'
     }), 404
 
-def check_dependencies():
-    """Check if all required packages are installed"""
-    required_packages = ['flask', 'flask-cors', 'flask-swagger-ui', 'numpy', 'scipy']
-    missing_packages = []
-    
-    for package in required_packages:
-        try:
-            __import__(package.replace('-', '_'))
-        except ImportError:
-            missing_packages.append(package)
-    
-    return missing_packages
-
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({
@@ -479,37 +666,9 @@ def internal_error(error):
 # ============================================================================
 
 if __name__ == '__main__':
-    print("🚀 Options Pricing Engine API")
-    print("=" * 50)
-    
-    # Check dependencies
-    missing_packages = check_dependencies()
-    if missing_packages:
-        print("❌ Missing required packages:")
-        for package in missing_packages:
-            print(f"   • {package}")
-        print("\nPlease install missing packages using:")
-        print(f"pip install {' '.join(missing_packages)}")
-        sys.exit(1)
-    
-    print("✅ All dependencies installed")
-    print("\nAvailable Endpoints:")
-    print("  • GET /api/health - Check API health")
-    print("  • POST /api/price/black-scholes - Price options using Black-Scholes")
-    print("  • POST /api/price/monte-carlo - Price options using Monte Carlo")
-    print("  • POST /api/greeks - Calculate option Greeks")
-    print("  • POST /api/portfolio/analyze - Analyze option portfolio")
-    print("  • GET /docs - Interactive API documentation")
-    
-    print("\n📖 Swagger UI: http://localhost:5000/docs")
-    print("🔍 API Documentation: http://localhost:5000/static/swagger.json")
-    print("\nStarting server...")
-    
-    try:
-        app.run(debug=True)
-    except Exception as e:
-        print(f"\n❌ Error starting server: {e}")
-        sys.exit(1)
+    print("=" * 70)
+    print("🚀 OPTIONS PRICING ENGINE REST API")
+    print("=" * 70)
     print("\n📡 Starting server...")
     print("📍 Base URL: http://localhost:5000")
     print("📖 Documentation: http://localhost:5000/docs")
