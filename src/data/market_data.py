@@ -359,6 +359,12 @@ class MarketDataFetcher:
             exp_date = datetime.strptime(chain['expiration'], '%Y-%m-%d')
             days_to_exp = (exp_date - datetime.now()).days
             
+            # Skip if expiring too soon (< 2 days)
+            if days_to_exp < 2:
+                print(f"⚠️  Options expire in {days_to_exp} day(s) - too close for accurate pricing")
+                print(f"   Try a stock with longer-dated options")
+                return None
+            
             # Get calls data
             calls = chain['calls'].copy()
             

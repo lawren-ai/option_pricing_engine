@@ -1,74 +1,190 @@
-# Options Pricing Engine
+# Options Pricing Engine 🚀
 
-> A production-grade quantitative finance system implementing Black-Scholes analytical pricing, Monte Carlo simulation, and comprehensive Greeks calculation for derivative risk management.
+> A production-grade quantitative finance system with REST API for options pricing, risk management, and real-time market analysis.
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Live Data](https://img.shields.io/badge/market%20data-live-green)](https://github.com/lawren-ai/option_pricing_engine)
 
 ## 🎯 Project Overview
 
-This project implements a complete options pricing and risk management system used by investment banks and hedge funds. It demonstrates the mathematical foundations of quantitative finance and how derivatives are priced in real markets.
+This project implements a production-ready options pricing and risk management system with a REST API. It combines mathematical pricing models with real-time market data integration, making it suitable for both learning and real-world trading applications.
 
-**Built to understand:** How platforms like Cowrywise, Robinhood, and Bloomberg price and manage risk for complex financial instruments.
-
-### What This System Can Do
-
-- **Price any option contract** using Nobel Prize-winning Black-Scholes formula
-- **Simulate complex derivatives** using Monte Carlo methods (Asian, Barrier, American options)
-- **Calculate risk exposures** (Greeks: Delta, Gamma, Vega, Theta, Rho)
-- **Validate pricing models** using put-call parity and convergence analysis
-- **Handle edge cases** (expiration day, extreme volatility, zero interest rates)
-
----
+**Key Features:**
+- Black-Scholes analytical pricing
+- Monte Carlo simulation for exotic options
+- Complete Greeks calculation (Delta, Gamma, Theta, Vega, Rho)
+- Real-time market data integration via Yahoo Finance
+- REST API with comprehensive documentation
+- Portfolio analysis and risk management
 
 ## 🚀 Quick Start
 
-### Installation
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the main demo
+python main.py
+
+# Try live market data
+python demos/live_market_demo.py
+
+# Start the REST API
+python api/app.py
+```
+
+**See it in action:** Visit `http://localhost:5000/docs` for interactive API documentation.
+
+---
+
+## ✨ Features
+
+### Pricing Models
+- Black-Scholes analytical pricing (microsecond-level speed)
+- Monte Carlo simulation for complex derivatives
+- Support for European, Asian, and Barrier options
+- Handles edge cases (zero rates, extreme volatility)
+
+### Risk Analytics
+- Complete Greeks calculation (Δ, Γ, Θ, ν, ρ)
+- Portfolio-level risk aggregation
+- Volatility smile/skew analysis
+- Real-time risk monitoring
+
+### Market Integration
+- Live stock price feeds via Yahoo Finance
+- Options chain data with bid/ask spreads
+- Historical and implied volatility calculations
+- Real-time market validation
+
+### REST API
+- Comprehensive API documentation
+- JSON request/response format
+- Rate limiting and error handling
+- CORS support for web clients
+
+### Production Features
+- Robust error handling
+- Performance optimization
+- Comprehensive validation
+- Unit test coverage
+
+---
+
+## 🏗️ Architecture
+
+```
+option_pricing_engine/
+├── api/                 # REST API implementation
+│   ├── app.py          # Flask application
+│   └── test_api.py     # API test suite
+├── src/
+│   ├── models/         # Core pricing models
+│   │   ├── black_scholes.py
+│   │   ├── monte_carlo.py
+│   │   ├── greeks.py
+│   │   └── option.py
+│   └── data/          # Market data integration
+│       └── market_data.py
+├── demos/             # Demonstration scripts
+│   ├── live_market_demo.py
+│   ├── monte_carlo_demo.py
+│   └── greeks_demo.py
+├── images/           # Visualizations
+├── tests/            # Unit tests
+└── requirements.txt  # Dependencies
+```
+
+---
+
+## 🛠️ Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/lawren-ai/options-pricing-engine.git
-cd options-pricing-engine
+git clone https://github.com/lawren-ai/option_pricing_engine.git
+cd option_pricing_engine
+
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate     # Windows
+source .venv/bin/activate  # Linux/Mac
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+---
+
+## 💻 Usage
+
+### Starting the API Server
+
+```bash
+python api/app.py
+```
+
+The server will start at `http://localhost:5000`. Visit `http://localhost:5000/docs` for interactive API documentation.
+
+### Example API Request
+
+```bash
+curl -X POST "http://localhost:5000/api/greeks" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "symbol": "MSFT",
+       "strike_price": 200,
+       "days_to_expiration": 90,
+       "option_type": "call",
+       "stock_price": 195,
+       "volatility": 0.25,
+       "risk_free_rate": 0.05
+     }'
+```
+
+### Python Usage
 
 ```python
 from datetime import datetime, timedelta
 from src.models.option import Option, OptionType
 from src.models.black_scholes import BlackScholesEngine
+from src.models.greeks import GreeksCalculator
 
-# Create an option contract
-msft_call = Option(
-    symbol="MSFT",
-    strike_price=200.0,
-    expiration_date=datetime.now() + timedelta(days=90),
+# Create an option
+option = Option(
+    symbol="AAPL",
+    strike_price=150.0,
+    expiration_date=datetime.now() + timedelta(days=30),
     option_type=OptionType.CALL,
-    current_stock_price=195.0,
+    current_stock_price=155.0,
     risk_free_rate=0.05,
-    volatility=0.25
+    volatility=0.30
 )
 
-# Price it using Black-Scholes
-price = BlackScholesEngine.price_option(msft_call)
-print(f"Option Price: ${price:.2f}")  # Output: Option Price: $8.49
+# Price it
+price = BlackScholesEngine.price_option(option)
+print(f"Option Price: ${price:.2f}")
+
+# Calculate Greeks
+greeks = GreeksCalculator.calculate_analytical_greeks(option)
+print(f"Delta: {greeks.delta:.4f}")
 ```
 
-### Run Demonstrations
+### Running Demonstrations
 
 ```bash
-# Black-Scholes vs Monte Carlo comparison
+# Live market data integration demo
+python demos/live_market_demo.py
+
+# Monte Carlo pricing demo
 python demos/monte_carlo_demo.py
 
-# Greeks risk analysis
+# Greeks analysis demo
 python demos/greeks_demo.py
 
-# Complete pricing demonstration
-python main.py
+# Create visualizations
+python create_visualizations.py
 ```
 
 ---
@@ -145,6 +261,76 @@ Net Delta: +64.17  (equivalent to 64 shares)
 Daily Theta: -$3.87 (time decay per day)
 Hedge: Sell 64 shares for delta-neutral position
 ```
+
+---
+
+## 🌐 Live Market Data Integration
+
+The engine integrates with Yahoo Finance to fetch real-time market data:
+
+### Real-Time Data Sources
+- **Stock Prices**: Live quotes for any ticker
+- **Historical Volatility**: 30-day rolling calculations  
+- **Options Chains**: Complete bid/ask spreads and open interest
+- **Implied Volatility**: Market expectations from option prices
+- **Risk-Free Rate**: Current 3-month Treasury yields
+
+### Market Data Demo Results
+
+```
+Multi-Stock Volatility Analysis:
+  Symbol        Price      30d Vol     Classification
+  --------------------------------------------------------
+  TSLA      $433.58      47.96%      High (Growth stock)
+  AAPL      $260.08      25.57%      Medium (Tech)
+  MSFT      $523.62      14.95%      Low (Mature tech)
+  SPY       $669.43      10.57%      Low (Stable index)
+```
+
+**Volatility Smile Detection:**
+- Successfully identifies market phenomena
+- OTM puts show elevated IV (downside protection premium)
+- ATM options have moderate IV (~28%)
+- Deep OTM options show elevated IV (tail risk premium)
+
+### Usage Example
+
+```python
+from src.data.market_data import MarketDataFetcher
+
+fetcher = MarketDataFetcher()
+
+# Get live stock price
+price = fetcher.get_stock_price("AAPL")  # Returns: $260.08
+
+# Calculate historical volatility
+vol = fetcher.get_historical_volatility("AAPL", days=30)  # Returns: 25.57%
+
+# Create option with live market data
+option_data = fetcher.create_option_from_market_data(
+    symbol="AAPL",
+    strike_price=260,
+    days_to_expiration=30,
+    option_type="call"
+)
+# Automatically fetches: stock price, implied volatility, risk-free rate
+```
+
+### Model Validation
+
+Tested against real SPY options market:
+- ✅ Volatility calculations match market consensus
+- ✅ Successfully detects volatility smile phenomenon  
+- ✅ Handles real-world edge cases (illiquid options, wide spreads)
+- ✅ Risk-free rate from actual 3-month Treasury yields
+
+Run the live data demo:
+```bash
+python demos/live_market_demo.py
+```
+
+---
+
 ## 📊 Visual Results
 
 ### Greeks Evolution Over Time
@@ -162,46 +348,109 @@ Hedge: Sell 64 shares for delta-neutral position
 ### Portfolio Risk Dashboard
 ![Portfolio Dashboard](images/portfolio_dashboard.png)
 *Real-time risk management for a multi-leg options portfolio.*
+
 ---
 
-## 🏗️ Architecture & Design
+## 🌐 API Endpoints
 
-### Project Structure
+### Options Pricing
 
-```
-options-pricing-engine/
-├── src/
-│   └── models/
-│       ├── option.py           # Core data model
-│       ├── black_scholes.py    # Analytical pricing
-│       ├── monte_carlo.py      # Numerical simulation
-│       └── greeks.py           # Risk sensitivities
-├── demos/
-│   ├── basic_pricing_demo.py
-│   ├── monte_carlo_demo.py
-│   └── greeks_demo.py
-├── tests/                      # Unit tests
-├── requirements.txt
-└── README.md
+#### `POST /api/price/black-scholes`
+Price European options using Black-Scholes formula.
+```json
+{
+    "symbol": "AAPL",
+    "strike_price": 150.0,
+    "days_to_expiration": 30,
+    "option_type": "call",
+    "stock_price": 155.0,
+    "volatility": 0.25,
+    "risk_free_rate": 0.05
+}
 ```
 
-### Key Design Decisions
+#### `POST /api/price/monte-carlo`
+Price options using Monte Carlo simulation.
+```json
+{
+    "symbol": "AAPL",
+    "strike_price": 150.0,
+    "days_to_expiration": 30,
+    "option_type": "call",
+    "option_style": "asian",
+    "stock_price": 155.0,
+    "volatility": 0.25,
+    "risk_free_rate": 0.05,
+    "num_simulations": 10000
+}
+```
 
-**1. Separation of Concerns**
-- `Option` class: Pure data model with validation
-- Pricing engines: Stateless, pure mathematical functions
-- Greeks calculator: Separate analytical vs numerical methods
+#### `POST /api/price/live`
+Price option using LIVE market data from Yahoo Finance.
+```json
+{
+    "symbol": "AAPL",
+    "strike_price": 150,
+    "days_to_expiration": 30,
+    "option_type": "call",
+    "use_implied_vol": true
+}
+```
 
-**2. Production-Ready Patterns**
-- Comprehensive input validation (prevents bad trades!)
-- Edge case handling (expiration day, zero volatility)
-- Mathematical validation (put-call parity checks)
-- Performance optimization (vectorized NumPy operations)
+### Risk Analytics
 
-**3. Extensibility**
-- Easy to add new option types (American, Lookback, etc.)
-- Pluggable pricing methods (binomial trees, finite difference)
-- Generic Greeks calculator works with ANY pricer
+#### `POST /api/greeks`
+Calculate option Greeks (Delta, Gamma, Theta, Vega, Rho).
+
+#### `POST /api/portfolio/analyze`
+Analyze multi-leg option strategies.
+```json
+{
+    "positions": [
+        {
+            "quantity": 100,
+            "option": {
+                "symbol": "SPY",
+                "strike_price": 450,
+                "days_to_expiration": 30,
+                "option_type": "call"
+            }
+        }
+    ]
+}
+```
+
+#### `POST /api/market/compare`
+Compare model prices against actual market prices.
+```json
+{
+    "symbol": "SPY"
+}
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+python -m pytest
+
+# Run specific test file
+python -m pytest tests/test_black_scholes.py
+
+# Run with coverage report
+python -m pytest --cov=src tests/
+
+# Test the API
+python api/test_api.py
+```
+
+### Model Validation
+- Put-call parity checks (validates mathematical consistency)
+- Monte Carlo convergence analysis
+- Market price comparison against Yahoo Finance data
+- Greeks numerical verification
 
 ---
 
@@ -288,12 +537,14 @@ delta = (price(S + h) - price(S - h)) / (2h)  # More accurate than forward diffe
 
 ## 📈 Performance Benchmarks
 
+Tested on: MacBook Pro M1, Python 3.9
 
 | Method | Options Priced | Time | Ops/Second |
 |--------|---------------|------|------------|
 | Black-Scholes | 1,000 | 0.52s | 1,923/s |
 | Monte Carlo (10k sims) | 1 | 0.96s | 1.04/s |
 | Greeks (analytical) | 1,000 | 0.58s | 1,724/s |
+| Market Data Fetch | 1 ticker | 0.3s | 3.3/s |
 
 **Key Insight:** Black-Scholes is ~1,800x faster than Monte Carlo, but Monte Carlo handles ANY option type.
 
@@ -306,37 +557,48 @@ delta = (price(S + h) - price(S - h)) / (2h)  # More accurate than forward diffe
 - Why implied volatility matters more than historical volatility
 - How market makers hedge billions in risk using Greeks
 - The trade-offs between analytical vs numerical methods
+- Real-world market microstructure (bid-ask spreads, volatility smile)
 
 ### Software Engineering
 - Debugging stochastic processes requires understanding the math deeply
 - Production code needs extensive edge case handling
 - Mathematical validation (put-call parity) is essential
 - Performance matters: microseconds vs milliseconds in trading
+- API design and RESTful principles
 
 ### Problem Solving
 - Started with working standalone code, integrated into classes
 - Used debug scripts to isolate bugs systematically
 - Validated outputs against known analytical solutions
 - Built confidence through comprehensive testing
+- Integrated external APIs for real-world validation
 
 ---
 
 ## 🚀 Future Enhancements
 
+**Completed:**
+- [x] Black-Scholes analytical pricing
+- [x] Monte Carlo simulation
+- [x] Greeks calculation
+- [x] REST API implementation
+- [x] Live market data integration (Yahoo Finance) ✅
+- [x] Volatility smile analysis ✅
+- [x] Professional visualizations ✅
+
 **Planned Features:**
 - [ ] Implied volatility calculation (Newton-Raphson method)
 - [ ] American options (Longstaff-Schwartz algorithm)
 - [ ] Multi-asset options (basket options, spreads)
-- [ ] REST API for web access
-- [ ] Interactive dashboard with real-time Greeks
+- [ ] Interactive web dashboard
 - [ ] Historical data backtesting
-- [ ] Volatility surface visualization
+- [ ] Volatility surface 3D visualization
 
 **Nice-to-Have:**
 - [ ] GPU acceleration for Monte Carlo (CuPy)
 - [ ] Distributed simulation (Ray/Dask)
 - [ ] Machine learning for implied vol prediction
-- [ ] Integration with market data APIs (Alpha Vantage, Yahoo Finance)
+- [ ] Integration with additional data providers
 
 ---
 
@@ -375,15 +637,17 @@ MIT License - feel free to use this for learning or commercial projects.
 
 ## 👨‍💻 Author
 
-**[Your Name]**
+**Ayotunde Akinboade**
 - Aspiring Quantitative Developer
 - Interested in fintech and algorithmic trading
-
+- Currently learning quantitative finance and building towards roles at firms like Goldman Sachs, Citadel, or fintech platforms like Cowrywise
 
 **Connect:**
-- GitHub: [@lawren_ai](https://github.com/lawren-ai)
-- LinkedIn: [Ayotunde Akinboade](https://linkedin.com/in/yourprofile)
+- GitHub: [@lawren-ai](https://github.com/lawren-ai)
+- LinkedIn: [Ayotunde Akinboade](https://www.linkedin.com/in/ayotunde-akinboade)
 - Email: akinboadelawrenceayo@gmail.com
+
+Feel free to reach out for questions, feedback, or collaboration opportunities!
 
 ---
 
