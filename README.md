@@ -1,53 +1,61 @@
-# Options Pricing Engine 🚀
+# Options Pricing Implementation �
 
-> A production-grade quantitative finance system with REST API for options pricing, risk management, and real-time market analysis.
+A beginner-friendly implementation of options pricing using two fundamental approaches:
+1. Black-Scholes analytical solution
+2. Monte Carlo simulation
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Live Data](https://img.shields.io/badge/market%20data-live-green)](https://github.com/lawren-ai/option_pricing_engine)
 
-## 🎯 Project Overview
+## Overview
 
-This project implements a production-ready options pricing and risk management system with a REST API. It combines mathematical pricing models with real-time market data integration, making it suitable for both learning and real-world trading applications.
+This project helps you understand options pricing by implementing and comparing two different methods:
 
-**Key Features:**
-- Black-Scholes analytical pricing
-- Monte Carlo simulation for exotic options
-- Complete Greeks calculation (Delta, Gamma, Theta, Vega, Rho)
-- Real-time market data integration via Yahoo Finance
-- REST API with comprehensive documentation
-- Portfolio analysis and risk management
+- **Black-Scholes Formula**: The analytical solution that revolutionized options trading
+- **Monte Carlo Simulation**: A numerical method that can handle more complex scenarios
 
-## 🚀 Quick Start
+## Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/lawren-ai/option_pricing_engine.git
+cd option_pricing_engine
+
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate     # Windows
+source .venv/bin/activate  # Linux/Mac
+
 # Install dependencies
 pip install -r requirements.txt
-
-# Run the main demo
-python main.py
-
-# Try live market data
-python demos/live_market_demo.py
-
-# Start the REST API
-python api/app.py
 ```
 
-**See it in action:** Visit `http://localhost:5000/docs` for interactive API documentation.
+## Usage
 
----
+Run the main script to see both methods in action:
 
-## ✨ Features
+```bash
+python main.py
+```
 
-### Pricing Models
-- Black-Scholes analytical pricing (microsecond-level speed)
-- Monte Carlo simulation for complex derivatives
-- Support for European, Asian, and Barrier options
-- Handles edge cases (zero rates, extreme volatility)
+This will:
+1. Price an example option using Black-Scholes
+2. Price the same option using Monte Carlo simulation with different numbers of paths
+3. Compare the results and show the convergence
+4. Generate a visualization saved as 'convergence.png'
 
-### Risk Analytics
+## Project Structure
+
+```
+option_pricing_engine/
+├── src/
+│   └── models/
+│       ├── option.py           # Option class definition
+│       ├── black_scholes.py    # Black-Scholes implementation
+│       └── monte_carlo.py      # Monte Carlo simulation
+├── main.py                     # Demo script
+└── requirements.txt            # Dependencies
+```
 - Complete Greeks calculation (Δ, Γ, Θ, ν, ρ)
 - Portfolio-level risk aggregation
 - Volatility smile/skew analysis
